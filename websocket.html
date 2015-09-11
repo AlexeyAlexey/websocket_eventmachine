@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+	<title></title>
+  </head>
+  <body>
+
+
+    <ul id="message"></ul>
+    <textarea id="text_message"></textarea>>
+    <a id="send_message" href="###">Send Message</a>
+  </body>
+  
+  <script type="text/javascript">
+    var socket = new WebSocket("ws://localhost:8081");
+ 
+    socket.onopen = function() {
+	  alert("Соединение установлено.");
+	};
+
+	socket.onclose = function(event) {
+	  if (event.wasClean) {
+	    alert('Соединение закрыто чисто');
+	  } else {
+	    alert('Обрыв соединения'); // например, "убит" процесс сервера
+	  }
+	  alert('Код: ' + event.code + ' причина: ' + event.reason);
+	};
+
+	socket.onmessage = function(event) {
+	  $('<li>').text(event.data).appendTo('#message');
+	  alert("Получены данные " + event.data);
+	};
+
+	socket.onerror = function(error) {
+	  alert("Ошибка " + error.message);
+	};
+
+	$(document).ready(function () {
+      $("a#send_message").click(function (argument) {
+      	socket.send($("textarea#text_message").val())
+      });
+	});
+  </script>
+</html>
