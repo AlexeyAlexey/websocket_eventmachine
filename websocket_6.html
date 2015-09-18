@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <style type="text/css">
+      html { height: 100%; }
+      body { height: 100%; margin: 0; background: #111; text-align: center; }
+      #remoteVideo { height: 70%; margin-top: 5%; background: #000; }
+      #localVideo { width: 20%; position: absolute; right: 1.1em; bottom: 1em; border: 1px solid #333; background: #000; }
+      #callButton { position: absolute; display: none; left: 50%; font-size: 2em; bottom: 5%; border-radius: 1em; }
+    </style>
+  </head>
+
+  <body>
+    <video id="localVideo" autoplay muted></video>
+    <video id="remoteVideo" autoplay></video>
+    <button id="callButton" onclick="createOffer()">✆</button>
+    <br>
+    <br>
+        <ul id="message"></ul>
+        <textarea id="text_message"></textarea>>
+        <button id="send_message" onclick="send_message()">Send Message</button>
+       
+  </body>
+  <script>
+    //https://shanetully.com/2014/09/a-dead-simple-webrtc-example/
+    //http://www.w3.org/TR/webrtc/#examples-and-call-flows
+    //http://www.html5rocks.com/en/tutorials/webrtc/basics/#toc-rtcdatachannel
+    var signalingChannel = new WebSocket("ws://:8081");//new SignalingChannel();
+    var configuration = { 'iceServers': [{'url': 'stun:stun.services.mozilla.com'}, {'url': 'stun:stun.l.google.com:19302'}] };
+    var pc;
+
+    // call start() to initiate
+    function start() {
+        var PeerConnection     =  window.webkitPeerConnection00 || window.webkitRTCPeerConnection || window.mozRTCPeerConnection || window.RTCPeerConnection || window.PeerConnection;
+        var RTCIceCandidate       = window.webkitRTCIceCandidate || window.mozRTCIceCandidate || window.RTCIceCandidate;
+        navigator.getUserMedia = navigator.getUserMedia || navigator.mozGetUserMedia || navigator.webkitGetUserMedia;
+
+        pc = new PeerConnection(configuration);
+
+        // send any ice candidates to the other peer
+        pc.onicecandidate = function (evt) {
+            if (evt.candidate){
+              signalingChannel.send(JSON.stringify({ "candidate": evt.candidate }));
+            }
+        };
+
+        // let the "negotiationneeded" event trigger offer generation
+        pc.onnegotiationneeded = function () {
+            pc.createOffer().then(function (offer) {
+                return pc.setLocalDescription(offer);
+            })
+            .then(function () {
+                // send the offer to the other peer
+                signalingChannel.send(JSON.stringify({ "sdp": pc.localDescription }));
+            })
+            .catch(logError);
+        };
+
+        // once remote stream arrives, show it in the remote video element
+        pc.onaddstream = function (evt) {
+            remoteView.srcObject = evt.stream;
+        };
+
+        // get a local stream, show it in a self-view and add it to be sent
+        //navigator.mediaDevices.getUserMedia({ "audio": true, "video": true }, function (stream) {
+        navigator.getUserMedia({ "audio": true, "video": true }, function (stream) {
+            //document.getElementById("callButton").style.display = 'inline-block';
+            var selfView = document.getElementById("localVideo");
+
+            selfView.srcObject = stream;
+            pc.addStream(stream);
+        }, logError);
+    }
+
+    signalingChannel.onmessage = function (evt) {
+        if (!pc)
+            start();
+
+        var message = JSON.parse(evt.data);
+        if (message.sdp) {
+            var desc = new RTCSessionDescription(message.sdp);
+
+            // if we get an offer, we need to reply with an answer
+            if (desc.type == "offer") {
+                pc.setRemoteDescription(desc).then(function () {
+                    return pc.createAnswer();
+                })
+                .then(function (answer) {
+                    return pc.setLocalDescription(answer);
+                })
+                .then(function () {
+                    signalingChannel.send(JSON.stringify({ "sdp": pc.localDescription }));
+                })
+                .catch(logError);
+            } else
+                pc.setRemoteDescription(desc).catch(logError);
+        } 
+        else{
+                    pc.addIceCandidate(new RTCIceCandidate(message.candidate)).catch(logError);
+        }
+    };
+
+    function logError(error) {
+        log(error.name + ": " + error.message);
+    }
+
+  </script>
+</html>

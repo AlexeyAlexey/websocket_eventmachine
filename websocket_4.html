@@ -21,9 +21,11 @@
 <br>
     <ul id="message"></ul>
     <textarea id="text_message"></textarea>>
-    <a id="send_message" href="###">Send Message</a>
+    <button id="send_message" onclick="send_message()">Send Message</button>
+   
 
 <script>
+//https://bitbucket.org/webrtc/codelab
   var PeerConnection     = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
   var IceCandidate       = window.mozRTCIceCandidate || window.RTCIceCandidate;
   var SessionDescription = window.mozRTCSessionDescription || window.RTCSessionDescription;
@@ -31,6 +33,7 @@
 
   var pc; // PeerConnection
   var dataChannel;
+  
 
 
   // Step 1. getUserMedia
@@ -42,7 +45,9 @@
 
   function gotStream(stream) {
     document.getElementById("callButton").style.display = 'inline-block';
-    document.getElementById("localVideo").src = URL.createObjectURL(stream);
+    var video = document.getElementById("localVideo");
+    video.src = URL.createObjectURL(stream);
+    video.play();
 
     pc = new PeerConnection(null);
     pc.addStream(stream);
@@ -118,7 +123,7 @@
   ////////////////////////////////////////////////
   // Socket.io
 
-  var socket = new WebSocket("ws://localhost:8081");
+  var socket = new WebSocket("ws://:8081");
 
   function sendMessage(message){
     socket.send(JSON.stringify(message));
@@ -140,13 +145,16 @@
     }
   };
 
-
+  function send_message(){
+    var message = document.getElementById("text_message").value;
+    dataChannel.send(message);
+  }
 
   $(document).ready(function () {
-    $("a#send_message").click(function (argument) {
-    //socket.send($("textarea#text_message").val())
+    //$("a#send_message").click(function (argument) {
+      //socket.send($("textarea#text_message").val())
       
-    });
+    //});
   });
 
 </script>
