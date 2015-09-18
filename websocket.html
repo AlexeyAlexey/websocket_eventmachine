@@ -21,27 +21,89 @@
 	  alert("Соединение установлено.");
 	};
 
-	socket.onclose = function(event) {
-	  if (event.wasClean) {
-	    alert('Соединение закрыто чисто');
-	  } else {
-	    alert('Обрыв соединения'); // например, "убит" процесс сервера
-	  }
-	  alert('Код: ' + event.code + ' причина: ' + event.reason);
-	};
+	
 
-	socket.onmessage = function(event) {
-	  $('<li>').text(event.data).appendTo('#message');
-	  alert("Получены данные " + event.data);
-	};
 
-	socket.onerror = function(error) {
-	  alert("Ошибка " + error.message);
-	};
+var signalingChannel = socket//new SignalingChannel();
+var configuration = {
+  'iceServers': [{
+    'url': 'stun:stun.l.google.com:19302'
+  }]
+};
+var pc;
+
+// call start() to initiate
+
+function start() {
+  pc = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection || window.msRTCPeerConnection;
+
+  // send any ice candidates to the other peer
+  pc.onicecandidate = function (evt) {
+    if (evt.candidate)
+      signalingChannel.send(JSON.stringify({
+        'candidate': evt.candidate
+      }));
+  };
+
+  // let the 'negotiationneeded' event trigger offer generation
+  pc.onnegotiationneeded = function () {
+    pc.createOffer(localDescCreated, logError);
+  }
+
+  // once remote stream arrives, show it in the remote video element
+  pc.onaddstream = function (evt) {
+    remoteView.src = URL.createObjectURL(evt.stream);
+  };
+
+  // get a local stream, show it in a self-view and add it to be sent
+navigator.getUserMedia = navigator.getUserMedia || navigator.mozGetUserMedia || navigator.webkitGetUserMedia || navigator.msGetUserMedia;
+navigator.getUserMedia({
+    'audio': true,
+    'video': true
+  }, function (stream) {
+    selfView.src = URL.createObjectURL(stream);
+    pc.addStream(stream);
+  }, logError);
+}
+
+function localDescCreated(desc) {
+  pc.setLocalDescription(desc, function () {
+    signalingChannel.send(JSON.stringify({
+      'sdp': pc.localDescription
+    }));
+  }, logError);
+}
+
+signalingChannel.onmessage = function (evt) {
+  if (!pc)
+    start();
+alert(evt.data)
+//var sessionDescription = window.RTCSessionDescription || window.mozRTCSessionDescription || window.webkitRTCSessionDescription || window.msRTCSessionDescription;
+  var message = JSON.parse(evt.data);
+  if (message.sdp)
+    pc.setRemoteDescription(new sessionDescription(message.sdp), function () {
+      // if we received an offer, we need to answer
+      if (pc.remoteDescription.type == 'offer')
+        pc.createAnswer(localDescCreated, logError);
+    }, logError);
+  else
+  	pc.createOffer(localDescCreated, logError);
+    //pc.addIceCandidate(new RTCIceCandidate(message.candidate));
+};
+
+function logError(error) {
+  log(error.name + ': ' + error.message);
+}
+
+
+
+
+
+
 
 	$(document).ready(function () {
       $("a#send_message").click(function (argument) {
-      	socket.send($("textarea#text_message").val())
+      	//socket.send($("textarea#text_message").val())
       });
 	});
   </script>

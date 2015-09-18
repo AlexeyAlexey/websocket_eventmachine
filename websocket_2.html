@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+	<title></title>
+  </head>
+  <body>
+    <video id="preview" autoplay></video>
+
+    <ul id="message"></ul>
+    <textarea id="text_message"></textarea>>
+    <a id="send_message" href="###">Send Message</a>
+  </body>
+  
+  <script type="text/javascript">
+    var socket = new WebSocket("ws://localhost:8081");
+ 
+    socket.onopen = function() {
+	    alert("Соединение установлено.");
+	  };
+
+    var signalingChannel = socket//new SignalingChannel();
+
+    var RTCPeerConnection = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+    var IceCandidate = window.mozRTCIceCandidate || window.RTCIceCandidate;
+    var SessionDescription = window.mozRTCSessionDescription || window.RTCSessionDescription;
+    navigator.getUserMedia = navigator.getUserMedia || navigator.mozGetUserMedia || navigator.webkitGetUserMedia;
+
+    var pc = new RTCPeerConnection(configuration);
+	
+    var configuration = {
+            iceServers: [
+                {urls: "stun:23.21.150.121"},
+                {urls: "stun:stun.l.google.com:19302"}
+            ]
+        }
+
+
+    pc.onicecandidate = function (e) {
+        // candidate exists in e.candidate
+        if (!e.candidate) return;
+        signalingChannel.send("icecandidate", JSON.stringify(e.candidate));
+    };
+
+    var options = {
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+    };
+
+
+    pc.createOffer(function (offer) {
+        pc.setLocalDescription(offer, function() {
+            signalingChannel.send("offer", JSON.stringify(pc.localDescription));
+        }, errorHandler);
+    }, errorHandler, options);
+
+    var errorHandler = function (err) {
+        console.error(err);
+    };
+
+
+    var constraints = {
+        video: true,
+        audio: true
+    };
+    var video = document.getElementById("preview");
+    navigator.getUserMedia(constraints, function (stream) {
+        video.src = URL.createObjectURL(stream);
+        pc.onaddstream({stream: stream});
+        pc.addStream(stream);
+
+        pc.createOffer(function(offer) {
+          pc.setLocalDescription(new RTCSessionDescription(offer), function() {
+            // send the offer to a server to be forwarded to the friend you're calling.
+          }, error);
+        }, error);
+
+        
+    }, errorHandler);
+
+
+////////////////////////
+
+
+
+
+
+
+	$(document).ready(function () {
+      $("a#send_message").click(function (argument) {
+      	//socket.send($("textarea#text_message").val())
+      });
+	});
+  </script>
+</html>

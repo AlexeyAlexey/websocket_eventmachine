@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+  <script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+  <style type="text/css">
+    html { height: 100%; }
+    body { height: 100%; margin: 0; background: #111; text-align: center; }
+    #remoteVideo { height: 70%; margin-top: 5%; background: #000; }
+    #localVideo { width: 20%; position: absolute; right: 1.1em; bottom: 1em; border: 1px solid #333; background: #000; }
+    #callButton { position: absolute; display: none; left: 50%; font-size: 2em; bottom: 5%; border-radius: 1em; }
+  </style>
+</head>
+<body>
+
+  <video id="localVideo" autoplay muted></video>
+  <video id="remoteVideo" autoplay></video>
+  <button id="callButton" onclick="createOffer()">✆</button>
+
+</body>  
+  <script type="text/javascript">
+    //var socket = new WebSocket("ws://localhost:8081");
+    var RTCPeerConnection = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+    var RTCIceCandidate = window.mozRTCIceCandidate || window.RTCIceCandidate;
+    var RTCSessionDescription = window.mozRTCSessionDescription || window.RTCSessionDescription;
+    navigator.getUserMedia = navigator.getUserMedia || navigator.mozGetUserMedia || navigator.webkitGetUserMedia;
+ 
+    var signalingChannel = new WebSocket("ws://localhost:8081");//new SignalingChannel();
+    
+    signalingChannel.onopen = function() {
+      //alert("Соединение установлено.");
+    };
+
+    var configuration = {
+      'iceServers': [{
+        'url': 'stun:stun.example.org'
+      }]
+    };
+    var pc;
+
+    // call start() to initiate
+
+    function start() {
+      pc = new RTCPeerConnection(configuration);
+
+      // send any ice candidates to the other peer
+      pc.onicecandidate = function (evt) {
+        if (evt.candidate)
+          signalingChannel.send(JSON.stringify({
+            'candidate': evt.candidate
+          }));
+      };
+
+      // let the 'negotiationneeded' event trigger offer generation
+      pc.onnegotiationneeded = function () {
+        pc.createOffer(localDescCreated, logError);
+      }
+
+      // once remote stream arrives, show it in the remote video element
+      pc.onaddstream = function (evt) {
+        remoteView.src = URL.createObjectURL(evt.stream);
+      };
+
+      // get a local stream, show it in a self-view and add it to be sent
+      var video = document.getElementById("localVideo");
+      navigator.getUserMedia({
+        'audio': true,
+        'video': true
+      }, function (stream) {
+        video.src = URL.createObjectURL(stream);
+        pc.addStream(stream);
+      }, logError);
+    }
+
+    function localDescCreated(desc) {
+      pc.setLocalDescription(desc, function () {
+        signalingChannel.send(JSON.stringify({
+          'sdp': pc.localDescription
+        }));
+      }, logError);
+    }
+
+    signalingChannel.onmessage = function (evt) {
+      if (!pc){
+        start();
+      }
+
+      var message = JSON.parse(evt.data);
+      if (message.sdp)
+        pc.setRemoteDescription(new RTCSessionDescription(message.sdp), function () {
+          // if we received an offer, we need to answer
+          if (pc.remoteDescription.type == 'offer')
+            pc.createAnswer(localDescCreated, logError);
+        }, logError);
+      else{
+        pc.addIceCandidate(new RTCIceCandidate(message.candidate));
+      }
+    };
+
+    function logError(error) {
+      alert(error.name + ': ' + error.message);
+    }
+
+
+	$(document).ready(function () {
+      $("a#send_message").click(function (argument) {
+      	//socket.send($("textarea#text_message").val())
+      });
+	});
+  </script>
+</html>
