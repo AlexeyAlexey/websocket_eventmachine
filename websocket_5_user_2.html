@@ -126,15 +126,9 @@
     ////////////////////////////////////////////////
     // Socket.io
 
-    var socket = new WebSocket("ws://localhost:8081?user_id=1&user_name=alex&format=json");
+    var socket = new WebSocket("ws://localhost:8081?user_id=2&user_name=alex&format=json");
 
     function sendMessage(message){
-      console.log(message.type)
-      if( message.type == "offer"){
-        message.user_id = "2"
-      }
-      message.user_id = "2"
-      console.log(JSON.stringify(message))
       socket.send(JSON.stringify(message));
     }
 
@@ -151,9 +145,6 @@
       else if (message.type === 'candidate') {
         var candidate = new IceCandidate({sdpMLineIndex: message.label, candidate: message.candidate});
         peerConnection.addIceCandidate(candidate);
-      }
-      else if (message.type === 'calling') {
-
       }
     };
 
