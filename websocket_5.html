@@ -130,12 +130,9 @@
 
     function sendMessage(message){
       console.log(message.type)
-      if( message.type == "offer"){
-        message.user_id = "2"
-      }
-      message.user_id = "2"
-      console.log(JSON.stringify(message))
-      socket.send(JSON.stringify(message));
+      //console.log(JSON.stringify(message) + JSON.stringify({ user_information: {"user_id": "2"} }) );
+            
+      socket.send(JSON.stringify(message) + "_split_" + JSON.stringify({ user_information: {"user_id": "2"} }));
     }
 
     socket.onmessage = function (event){
@@ -159,7 +156,7 @@
 
     function send_message(){
       var message = document.getElementById("text_message").value;
-      alert(dataChannel)
+      console.log("function send_message()")
       dataChannel.send(message);
     }
 

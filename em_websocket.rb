@@ -83,9 +83,13 @@ EM.run {
 
     ws.onmessage { |msg|
       puts "Recieved message: #{msg}"
+      msg_split = msg.split('_split_')
 
-      msg_hash = JSON.parse(msg)
+      msg = msg_split[0]
+      msg_user_information = msg_split[1]
+
       #msg_hash["type"]
+
       $redis_pool.with do |redis|
         current_user_id = @users[ ws.object_id ]
         unless current_user_id.nil?      
