@@ -49,8 +49,10 @@
       var video = document.getElementById("localVideo");
       video.src = URL.createObjectURL(stream);
       //video.play();
-      var configuration = { iceServers: [{'urls': 'stun:stun.services.mozilla.com'}, {'urls': 'stun:stun.l.google.com:19302'}]
-}
+      var configuration = { iceServers: [{'urls': 'stun:stun.services.mozilla.com'}, 
+                                         {'urls': 'stun:stun.l.google.com:19302'}
+                                        ]
+                          }
       peerConnection = new PeerConnection(configuration);
       peerConnection.addStream(stream);
       peerConnection.onicecandidate = gotIceCandidate;
@@ -129,28 +131,42 @@
     var socket = new WebSocket("ws://localhost:8081?user_id=2&user_name=alex&format=json");
 
     function sendMessage(message){
-      socket.send(JSON.stringify(message));
+      console.log(message.type)
+      //console.log(JSON.stringify(message) + JSON.stringify({ user_information: {"user_id": "2"} }) );
+      var user_information = { user_information: {"user_ids": [2], 
+                                                  "group_id": "id",
+                                                  "add_user_ids_to_group": {"group_id": "", "user_ids": []},
+                                                  "delete_user_ids_from_group": [],
+                                                 }
+                             }
+      socket.send(JSON.stringify(message) + "_split_" + JSON.stringify(user_information));
     }
 
     socket.onmessage = function (event){
       //alert(event.data)
       var message =  JSON.parse(event.data)
       if (message.type === 'offer') {
+        console.log('offer')
         peerConnection.setRemoteDescription(new SessionDescription(message));
         createAnswer();
       } 
       else if (message.type === 'answer') {
+        console.log('answer')
         peerConnection.setRemoteDescription(new SessionDescription(message));
       } 
       else if (message.type === 'candidate') {
+        console.log('candidate')
         var candidate = new IceCandidate({sdpMLineIndex: message.label, candidate: message.candidate});
         peerConnection.addIceCandidate(candidate);
+      }
+      else if (message.type === 'calling') {
+
       }
     };
 
     function send_message(){
       var message = document.getElementById("text_message").value;
-      alert(dataChannel)
+      console.log("function send_message()")
       dataChannel.send(message);
     }
 
