@@ -57,30 +57,6 @@
       peerConnection.addStream(stream);
       peerConnection.onicecandidate = gotIceCandidate;
       peerConnection.onaddstream = gotRemoteStream;
-
-      var dataChannelOptions = {
-        ordered: false, // do not guarantee order
-        maxRetransmitTime: 3000, // in milliseconds
-      };
-      
-      dataChannel = peerConnection.createDataChannel("myLabel", dataChannelOptions);
-
-      dataChannel.onerror = function (error) {
-        alert("Data Channel Error:", error);
-      };
-
-      dataChannel.onmessage = function (event) {
-        alert("Got Data Channel Message:", event.data);
-      };
-
-      dataChannel.onopen = function () {
-        alert("The Data Channel is onopen");
-        dataChannel.send("Hello World!");
-      };
-
-      dataChannel.onclose = function () {
-        alert("The Data Channel is Closed");
-      };
     }
 
 
@@ -131,7 +107,7 @@
     var socket = new WebSocket("ws://localhost:8081?user_id=1&user_name=alex&format=json");
 
     function sendMessage(message){
-      console.log(message.type)
+      //console.log(message.type)
       //console.log(JSON.stringify(message) + JSON.stringify({ user_information: {"user_id": "2"} }) );
       var user_information = { user_information: {"user_ids": [2], 
                                                   "group_id": "id",
