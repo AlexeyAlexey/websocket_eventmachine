@@ -109,10 +109,10 @@
     function sendMessage(message){
       //console.log(message.type)
       //console.log(JSON.stringify(message) + JSON.stringify({ user_information: {"user_id": "2"} }) );
-      var user_information = { user_information: {"user_ids": [2], 
-                                                  "group_id": "id",
-                                                  "add_user_ids_to_group": {"group_id": "", "user_ids": []},
-                                                  "delete_user_ids_from_group": [],
+      var user_information = { user_information: {
+                                                  "add_user_ids": [],
+                                                  "call_to_user_id": [],
+                                                  "hang_up_user_id": []
                                                  }
                              }
       socket.send(JSON.stringify(message) + "_split_" + JSON.stringify(user_information));

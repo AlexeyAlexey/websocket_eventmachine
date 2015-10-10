@@ -5,25 +5,20 @@ $redis_pool.with do |redis|
   #redis.hset "users_ids", "2", {"em_obj_id" => nil, "user_list_ids" => [1], "channel_list_ids" => []}.to_json
   redis.hset "users_ids", "1", {"em_obj_id"                => nil, 
                                 "user_list_ids"            => [2, 3], 
-                                "group_1"                  => ["user_ids"],
-                                "group_2"                  => ["user_ids"],
-                                "channel_list_ids"         => [],
-                                "current_user_list_ids"    => [], 
-                                "current_channel_list_ids" => []
+                                "speaking_with_user_ids"      => [2, 3],
+                                "who_is_called"            => "1",
                                 }.to_json
 
   redis.hset "users_ids", "2", {"em_obj_id"                => nil, 
                                 "user_list_ids"            => [1, 3], 
-                                "channel_list_ids"         => [],
-                                "current_user_list_ids"    => [], 
-                                "current_channel_list_ids" => []
+                                "speaking_with_user_ids"      => [1, 3],
+                                "who_is_called"            => "1",
                                 }.to_json
                                 
   redis.hset "users_ids", "3", {"em_obj_id"                => nil, 
-                                "user_list_ids"            => [1, 2], 
-                                "channel_list_ids"         => [],
-                                "current_user_list_ids"    => [], 
-                                "current_channel_list_ids" => []
+                                "user_list_ids"            => [1, 2],
+                                "speaking_with_user_ids"      => [1, 2],
+                                "who_is_called"            => "1", 
                                 }.to_json
 end
 
@@ -108,28 +103,30 @@ EM.run {
       
       msg_split            = msg.split('_split_')
       msg_signal_inf       = msg_split[0]
-      msg_user_information = msg_split[1]
+      msg_from_user        = msg_split[1]
+      msg_from_user        = JSON.parse(msg_from_user || "{}")
 
       puts "Recieved message: #{msg_signal_inf}"
       #msg_signal_inf_hash = JSON.parse(msg_signal_inf)
       #msg_signal_inf_hash
 
-      $redis_pool.with do |redis|
-        current_user_id = @users[ ws.object_id ]
-        unless current_user_id.nil?      
+      current_user_id = @users[ ws.object_id ]
+      current_user = "{}"
+      unless current_user_id.nil?      
+        $redis_pool.with do |redis|
           current_user = redis.hget "users_ids", current_user_id #select information obout user {"em_obj_id" => nil, "user_list_ids" => [2], "channel_list_ids" => []}
-          begin  
-            current_user_settings = JSON.parse(current_user)
-
-            current_user_settings["user_list_ids"].each do |subscriber_id|
-              @ws_object["#{subscriber_id}"].send msg_signal_inf
-            end
-          rescue Exception => e
-          
-          end
-        
         end
       end
+
+      begin  
+        current_user_settings = JSON.parse(current_user)
+        current_user_settings["user_list_ids"].each do |subscriber_id|
+          @ws_object["#{subscriber_id}"].send msg_signal_inf
+        end
+      rescue Exception => e
+          
+      end
+        
      
       #ws.send "ws: #{ws}"
     }
